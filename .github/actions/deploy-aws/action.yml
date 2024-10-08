@@ -51,14 +51,14 @@ runs:
         --version-label "$VERSION" \
         --description "Deploy $VERSION of $BEANSTALK_APP_NAME" >> $GITHUB_OUTPUT
       env:
-      - VERSION: ${{ inputs.version }}
-      - BUCKET_NAME: ${{ inputs.bucketName }}
-      - BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
-      - PACKAGE_TYPE: ${{ inputs.packageType }}
+        VERSION: ${{ inputs.version }}
+        BUCKET_NAME: ${{ inputs.bucketName }}
+        BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
+        PACKAGE_TYPE: ${{ inputs.packageType }}
         
     - name: Deploy new ElasticBeanstalk Application Version
       id: deploy-app
       run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION" >> $GITHUB_OUTPUT
       env:
-      - VERSION: ${{ inputs.version }}
-      - BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
+        VERSION: ${{ inputs.version }}
+        BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
