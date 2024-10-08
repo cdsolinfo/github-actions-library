@@ -1,0 +1,47 @@
+name: 'Deploy AWS Beanstalk'
+description: 'Deploy Application to the AWS Beanstalk PaaS service'
+inputs:
+  inputs:
+    bucketName:
+      type: string
+      description: S3 Bucket to retrieve package to deploy
+    targetEnv:
+      type: string
+      description: Target environment to use for the deployment
+      default: Development
+    applicationName:
+      type: string
+      description: AWS Beanstalk application name
+      required: true
+    version:
+      type: string
+      description: Version to deploy
+      required: trueoutputs:
+outputs:
+  create-app-result:
+    value: ${{ steps.create-app.outputs }}
+  deploy-app-result:
+    value: ${{ steps.deploy-app.outputs }}
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS Credentials
+      id: configure-credentials
+      uses: aws-actions/configure-aws-credentials@v4.0.1
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        role-session-name: GitHub_to_AWS_via_FederatedOIDC
+        aws-region: ${{ vars.AWS_REGION }}
+    
+    - name: Create new ElasticBeanstalk Application Version
+      id: create-app
+      run: |
+        aws elasticbeanstalk create-application-version \
+        --application-name ${BEANSTALK_APP_NAME} \
+        --source-bundle S3Bucket="$BUCKET_NAME",S3Key="packages/$BEANSTALK_APP_NAME/$BEANSTALK_APP_NAME-$VERSION.$PACKAGE_TYPE" \
+        --version-label "$VERSION" \
+        --description "Deploy $VERSION of $BEANSTALK_APP_NAME" >> $GITHUB_OUTPUT
+        
+    - name: Deploy new ElasticBeanstalk Application Version
+      id: deploy-app
+      run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION" >> $GITHUB_OUTPUT
