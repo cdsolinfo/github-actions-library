@@ -50,6 +50,7 @@ runs:
         --source-bundle S3Bucket="$BUCKET_NAME",S3Key="packages/$BEANSTALK_APP_NAME/$BEANSTALK_APP_NAME-$VERSION.$PACKAGE_TYPE" \
         --version-label "$VERSION" \
         --description "Deploy $VERSION of $BEANSTALK_APP_NAME" >> $GITHUB_OUTPUT
+      shell: bash
       env:
         VERSION: ${{ inputs.version }}
         BUCKET_NAME: ${{ inputs.bucketName }}
@@ -59,6 +60,7 @@ runs:
     - name: Deploy new ElasticBeanstalk Application Version
       id: deploy-app
       run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION" >> $GITHUB_OUTPUT
+      shell: bash
       env:
         VERSION: ${{ inputs.version }}
         BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
