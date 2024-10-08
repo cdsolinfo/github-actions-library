@@ -16,7 +16,7 @@ inputs:
     version:
       type: string
       description: Version to deploy
-      required: trueoutputs:
+      required: true
 outputs:
   create-app-result:
     value: ${{ steps.create-app.outputs }}
