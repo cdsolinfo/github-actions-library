@@ -12,7 +12,7 @@ on:
         description: Target environment to use for the deployment
         required: true
         default: Development
-      applicationtName:
+      applicationName:
         type: string
         description: AWS Beanstalk application name
         required: true
