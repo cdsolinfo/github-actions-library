@@ -1,1 +1,72 @@
 
+name: Application Deployment to AWS Beanstalk
+
+on:
+  workflow_call:
+    inputs:
+      bucketName:
+        type: string
+        description: S3 Bucket to retrieve package to deploy
+      targetEnv:
+        type: string
+        description: Target environment to use for the deployment
+        required: true
+        default: Development
+      applicationtName:
+        type: string
+        description: AWS Beanstalk application name
+        required: true
+      versionFile:
+        type: string
+        description: Version file to retrieve version to deploy
+        required: false
+      packageType:
+        type: string
+        description: Package type to deploy
+        required: true
+        default: jar
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  BUCKET_NAME: ${{ inputs.bucketName }}
+  BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
+  PACKAGE_TYPE: ${{ inputs.packageType }}
+jobs:
+  deploy:
+    environment: ${{ inputs.targetEnv }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: readversion
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ${{ inputs.versionFile }}
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Create new ElasticBeanstalk Application Version
+        run: |
+          aws elasticbeanstalk create-application-version \
+          --application-name ${BEANSTALK_APP_NAME} \
+          --source-bundle S3Bucket="$BUCKET_NAME",S3Key="packages/$BEANSTALK_APP_NAME/$BEANSTALK_APP_NAME-$VERSION.$PACKAGE_TYPE" \
+          --version-label "$VERSION" \
+          --description "Deploy $VERSION of $BEANSTALK_APP_NAME"
+        env:
+          VERSION: ${{ steps.readversion.outputs.content }}
+          
+      - name: Deploy new ElasticBeanstalk Application Version
+        run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION"
+        env:
+          VERSION: ${{ steps.readversion.outputs.content }}
