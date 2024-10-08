@@ -15,20 +15,17 @@ on:
         type: string
         description: AWS Beanstalk application name
         required: true
-      versionFile:
+      version:
         type: string
-        description: Version file to retrieve version to deploy
+        description: Version to deploy
         required: true
       packageType:
         type: string
         description: Package type to deploy
         default: jar
 
-permissions:
-  id-token: write
-  contents: read
-
 env:
+  VERSION: ${{ inputs.version }}
   BUCKET_NAME: ${{ inputs.bucketName }}
   BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
   PACKAGE_TYPE: ${{ inputs.packageType }}
@@ -37,16 +34,6 @@ jobs:
     environment: ${{ inputs.targetEnv }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Read version
-        id: readversion
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ${{ inputs.versionFile }}
-          
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4.0.1
         with:
@@ -61,10 +48,6 @@ jobs:
           --source-bundle S3Bucket="$BUCKET_NAME",S3Key="packages/$BEANSTALK_APP_NAME/$BEANSTALK_APP_NAME-$VERSION.$PACKAGE_TYPE" \
           --version-label "$VERSION" \
           --description "Deploy $VERSION of $BEANSTALK_APP_NAME"
-        env:
-          VERSION: ${{ steps.readversion.outputs.content }}
           
       - name: Deploy new ElasticBeanstalk Application Version
         run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION"
-        env:
-          VERSION: ${{ steps.readversion.outputs.content }}
