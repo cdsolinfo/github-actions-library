@@ -5,6 +5,15 @@ inputs:
     bucketName:
       type: string
       description: S3 Bucket to retrieve package to deploy
+      required: true
+    assumeRole:
+      type: string
+      description: AWS ARN for the role to assume
+      required: true
+    region:
+      type: string
+      description: AWS region to retrieve role
+      required: true
     targetEnv:
       type: string
       description: Target environment to use for the deployment
@@ -17,11 +26,11 @@ inputs:
       type: string
       description: Version to deploy
       required: true
-outputs:
-  create-app-result:
-    value: ${{ steps.create-app.outputs }}
-  deploy-app-result:
-    value: ${{ steps.deploy-app.outputs }}
+    packageType:
+      type: string
+      description: Package Type to deploy - jar, zip, war
+      required: true
+      
 runs:
   using: "composite"
   steps:
@@ -29,9 +38,9 @@ runs:
       id: configure-credentials
       uses: aws-actions/configure-aws-credentials@v4.0.1
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        role-to-assume: ${{ inputs.assumeRole }}
         role-session-name: GitHub_to_AWS_via_FederatedOIDC
-        aws-region: ${{ vars.AWS_REGION }}
+        aws-region: ${{ inputs.region }}
     
     - name: Create new ElasticBeanstalk Application Version
       id: create-app
@@ -41,7 +50,15 @@ runs:
         --source-bundle S3Bucket="$BUCKET_NAME",S3Key="packages/$BEANSTALK_APP_NAME/$BEANSTALK_APP_NAME-$VERSION.$PACKAGE_TYPE" \
         --version-label "$VERSION" \
         --description "Deploy $VERSION of $BEANSTALK_APP_NAME" >> $GITHUB_OUTPUT
+      env:
+      - VERSION: ${{ inputs.version }}
+      - BUCKET_NAME: ${{ inputs.bucketName }}
+      - BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
+      - PACKAGE_TYPE: ${{ inputs.packageType }}
         
     - name: Deploy new ElasticBeanstalk Application Version
       id: deploy-app
       run: aws elasticbeanstalk update-environment --environment-name  $BEANSTALK_APP_NAME --version-label "$VERSION" >> $GITHUB_OUTPUT
+      env:
+      - VERSION: ${{ inputs.version }}
+      - BEANSTALK_APP_NAME: ${{ inputs.applicationName }}
