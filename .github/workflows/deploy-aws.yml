@@ -10,7 +10,6 @@ on:
       targetEnv:
         type: string
         description: Target environment to use for the deployment
-        required: true
         default: Development
       applicationName:
         type: string
@@ -19,11 +18,10 @@ on:
       versionFile:
         type: string
         description: Version file to retrieve version to deploy
-        required: false
+        required: true
       packageType:
         type: string
         description: Package type to deploy
-        required: true
         default: jar
 
 permissions:
