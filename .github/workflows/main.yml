@@ -39,25 +39,18 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}"
-          message: '[github_action] update version to ${{ steps.version.outputs.version }} in package.json'
+          message: '[github_action][skip ci] update version to ${{ steps.version.outputs.version }} in package.json'
   
-      - name: Get Changelog
-        id: changelog
-        run: |
-          changelog=$(cat CHANGELOG.md)
-          echo "changelog=$changlog" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      - name: Create Git Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.1
         with:
-          tag_name: ${{ steps.version.outputs.version_tag }}
-          release_name: Release ${{ steps.version.outputs.version_tag }}
-          body: |
-            #### Changes in this Release:
-            ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ steps.version.outputs.version_tag }}
+    
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
