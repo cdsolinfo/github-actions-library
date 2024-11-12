@@ -33,8 +33,15 @@ jobs:
       - name: Write next release candidate version
         if: ${{ steps.version.outputs.c }}
         run: |
-          tmp=$(mktemp)
-          jq '.version = "${{ steps.version.outputs.version }}"' package.json > "$tmp" && mv "$tmp" package.json
+          for d in actions/*/; {
+            pushd $d;
+            if [ -f "package.json" ]; then
+              tmp=$(mktemp);
+              jq '.version = "${{ steps.version.outputs.version }}"' package.json > "$tmp" && mv "$tmp" package.json;
+            fi
+            popd;
+          }
+        shell: bash
   
       - name: Commit & Push new version
         uses: actions-js/push@master
