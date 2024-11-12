@@ -1,0 +1,22 @@
+# action.yml
+name: 'Increment Semver'
+description: 'Get the next version of a github repository or given string'
+branding:
+  icon: 'git-commit'
+  color: 'gray-dark'
+author: cdsolutionsinfo
+inputs:
+  version-level:  # id of input
+    description: 'Version Level to update [-Mmp]'
+    required: true
+    default: '-p'
+  version:  # id of input
+    description: 'Version string to update, if not specify, start patching from 0.0.0'
+    required: true
+    default: '0.0.0'
+outputs:
+  version: # id of output
+    description: 'The incremented version'
+runs:
+  using: node20
+  main: dist/index.js

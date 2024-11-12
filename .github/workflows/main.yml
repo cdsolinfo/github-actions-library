@@ -1,0 +1,63 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'actions/*'
+      - 'workflows/*'
+
+jobs:
+  test-increment-semver-job:
+    runs-on: ubuntu-latest
+    name: A job to release the next version
+    permissions:
+      contents: write
+    steps:
+#      Note Checkout is required for ${GITHUB_WORKSPACE} to be not empty
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Bump Version
+        id: version
+        uses: paulhatch/semantic-version@v5.3.0
+        with:
+          change_path: 'src'
+          version_format: '${major}.${minor}.${patch}'
+
+      - name: 'Setup jq'
+        uses: dcarbone/install-jq-action@v2
+
+      - name: Write next release candidate version
+        if: ${{ steps.version.outputs.c }}
+        run: |
+          tmp=$(mktemp)
+          jq '.version = "${{ steps.version.outputs.version }}"' package.json > "$tmp" && mv "$tmp" package.json
+  
+      - name: Commit & Push new version
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}"
+          message: '[github_action] update version to ${{ steps.version.outputs.version }} in package.json'
+  
+      - name: Get Changelog
+        id: changelog
+        run: |
+          changelog=$(cat CHANGELOG.md)
+          echo "changelog=$changlog" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.version.outputs.version_tag }}
+          release_name: Release ${{ steps.version.outputs.version_tag }}
+          body: |
+            #### Changes in this Release:
+            ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false

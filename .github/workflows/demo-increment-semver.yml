@@ -1,0 +1,49 @@
+name: Demo increment semver
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-increment-semver-job:
+    runs-on: ubuntu-latest
+    name: A job to test incrementing the version of a repository
+    steps:
+
+#      Note Checkout is required for ${GITHUB_WORKSPACE} to be not empty
+      - name: Checkout
+        uses: actions/checkout@v4
+
+#     Examples
+      - name: Increment Step Patch
+        id: increment-semver-patch
+        uses: cdsolinfo/increment-semver@main
+        with:
+          version-level: '-p'
+
+      - name: Increment Step Minor
+        id: increment-semver-minor
+        uses: cdsolinfo/increment-semver@main
+        with:
+          version-level: '-m'
+
+      - name: Increment Step Major
+        id: increment-semver-major
+        uses: cdsolinfo/increment-semver@main
+        with:
+          version-level: '-M'
+
+      - name: Increment Step Patch
+        id: increment-semver-patch_string
+        uses: cdsolinfo/increment-semver@main
+        with:
+          version-level: '-p'
+          version: '1.0.0'
+  
+
+      # Use the output from the `Increment Step X` step
+      - name: Get the output version
+        run: |
+          echo "The new patch version is ${{ steps.increment-semver-patch.outputs.version }}"
+          echo "The new minor version is ${{ steps.increment-semver-minor.outputs.version }}"
+          echo "The new Major version is ${{ steps.increment-semver-major.outputs.version }}"
+          echo "The new patch version for string 1.0.0 is ${{ steps.increment-semver-patch_string.outputs.version }}"          
