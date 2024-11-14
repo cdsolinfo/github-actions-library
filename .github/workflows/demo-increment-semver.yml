@@ -16,25 +16,25 @@ jobs:
 #     Examples
       - name: Increment Step Patch
         id: increment-semver-patch
-        uses: cdsolinfo/cicd-library/actions/increment-semver@main
+        uses: cdsolinfo/.github/actions/increment-semver@main
         with:
           version-level: '-p'
 
       - name: Increment Step Minor
         id: increment-semver-minor
-        uses: cdsolinfo/cicd-library/actions/increment-semver@main
+        uses: cdsolinfo/.github/actions/increment-semver@main
         with:
           version-level: '-m'
 
       - name: Increment Step Major
         id: increment-semver-major
-        uses: cdsolinfo/cicd-library/actions/increment-semver@main
+        uses: cdsolinfo/.github/actions/increment-semver@main
         with:
           version-level: '-M'
 
       - name: Increment Step Patch
         id: increment-semver-patch_string
-        uses: cdsolinfo/cicd-library/actions/increment-semver@main
+        uses: cdsolinfo/.github/actions/increment-semver@main
         with:
           version-level: '-p'
           version: '1.0.0'
