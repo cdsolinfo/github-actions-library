@@ -10,6 +10,12 @@ inputs:
 runs:   
   using: composite
   steps:
+    - name: Install jq
+      uses: dcarbone/install-jq-action@v2.1.0
+      with:
+        jq-version: 1.7
+        required: true
+
     - name: Write new version to package.json
       run: |
         for d in actions/*/; {
