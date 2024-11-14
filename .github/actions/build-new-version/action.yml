@@ -1,0 +1,40 @@
+
+name: 'Package new version'
+description: 'Retrieve environment for current repository'
+inputs:
+  version:
+    type: string
+    description: Release version number
+    required: true
+
+runs:   
+  using: composite
+  steps:
+    - name: Write new version to package.json
+      run: |
+        for d in actions/*/; {
+          pushd $d;
+          if [ -f "package.json" ]; then
+            tmp=$(mktemp);
+            jq '.version = "${{ github.action.inputs.version }}"' package.json > "$tmp" && mv "$tmp" package.json;
+          fi
+          popd;
+        }
+      shell: bash
+
+    - name: Setup Node
+      uses: actions/setup-node@v1
+      with:
+        node-version: 20
+
+    - name: Build new version package
+      run: |
+        for d in actions/*/; {
+          pushd $d;
+          if [ -f "package.json" ]; then
+            npm install;
+            npm run all;
+          fi
+          popd;
+        }
+      shell: bash

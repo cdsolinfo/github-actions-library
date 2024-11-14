@@ -1,4 +1,4 @@
-name: Release
+name: Build
 
 on:
   push:
@@ -9,56 +9,29 @@ on:
       - 'workflows/*'
 
 jobs:
-  test-increment-semver-job:
+  build:
     runs-on: ubuntu-latest
     name: A job to release the next version
     permissions:
       contents: write
     steps:
-#      Note Checkout is required for ${GITHUB_WORKSPACE} to be not empty
       - name: Checkout
         uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
 
       - name: Bump Version
         id: version
         uses: paulhatch/semantic-version@v5.3.0
-        with:
-          change_path: 'src'
-          version_format: '${major}.${minor}.${patch}'
 
-      - name: 'Setup jq'
-        uses: dcarbone/install-jq-action@v2
+      - name: Build new version
+        if: steps.version.outputs.changed
+        uses: ./.github/actions/build-new-version
+        with:
+          version: ${{ steps.version.outputs.version }}
 
-      - name: Write next release candidate version
-        if: ${{ steps.version.outputs.c }}
-        run: |
-          for d in actions/*/; {
-            pushd $d;
-            if [ -f "package.json" ]; then
-              tmp=$(mktemp);
-              jq '.version = "${{ steps.version.outputs.version }}"' package.json > "$tmp" && mv "$tmp" package.json;
-            fi
-            popd;
-          }
-        shell: bash
-  
-      - name: Commit & Push new version
-        uses: actions-js/push@master
+      - name: Release new Version
+        if: steps.version.outputs.changed
+        uses: ./.github/actions/release-new-version
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}"
-          message: '[github_action][skip ci] update version to ${{ steps.version.outputs.version }} in package.json'
-  
-      - name: Create Git Tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_tag: ${{ steps.version.outputs.version_tag }}
-    
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+          version: ${{ steps.version.outputs.version }}
