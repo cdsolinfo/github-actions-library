@@ -27,12 +27,12 @@ jobs:
 
       - name: Build new version
         if: steps.version.outputs.changed
-        uses: ./.github/actions/build-new-version
+        uses: ../actions/build-new-version
         with:
           version: ${{ steps.version.outputs.version }}
 
       - name: Release new Version
         if: steps.version.outputs.changed
-        uses: ./.github/actions/release-new-version
+        uses: ../actions/release-new-version
         with:
           version: ${{ steps.version.outputs.version }}
