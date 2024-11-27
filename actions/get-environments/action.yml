@@ -1,6 +1,7 @@
 name: 'Get environments'
 description: 'Retrieve environment for current repository'
-
+outputs:
+  names: ${{ toJson(fromJson(steps.get_env.outputs.data).environments.*.name) }}  
 runs:   
   using: composite
   steps:
@@ -12,9 +13,3 @@ runs:
         route: GET /repos/${{ github.repository }}/environments?per_page=100 # If we ever have >100 deployments, we'll need to paginate
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Set output
-      shell: bash
-      id: set_env
-      run: echo "names=$(echo $NAMES | jq -c '[.[] | select(startswith("[${{ github.ref_name }}]"))]' -j)" >> $GITHUB_OUTPUT
-      env:
-        NAMES: ${{ toJson(fromJson(steps.get_env.outputs.data).environments.*.name) }}  
