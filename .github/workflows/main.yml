@@ -67,6 +67,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}"
           message: "[github_action][skip ci] update version to ${{ steps.version.outputs.version }}"
+          rebase: true
 
       - name: Create Git Tag
         id: tag_version
