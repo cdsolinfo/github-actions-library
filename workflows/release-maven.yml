@@ -57,10 +57,14 @@ jobs:
       run: |
         git clean -f -d -x
         $MVNCMD -P allmodules clean release:clean release:prepare -DpushChanges=false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Perform release
       run: |
         $MVNCMD release:perform -DlocalCheckout=true -DdeployAtEnd=true "-Dgoals=clean install package source:jar javadoc:jar deploy"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Commit & Push new version
       uses: actions-js/push@master
