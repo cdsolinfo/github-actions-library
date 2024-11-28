@@ -12,57 +12,65 @@ on:
         required: true
         default: ""
       architecture:
-        type: choice
+        type: string
         description: "Architecture cible (x86, x64, armv7, aarch64, ppc64le)"
-        options:
-        - x86
-        - x64
-        - armv7
-        - aarch64
-        - ppc64le
         default: "x86"
+      publish-docker:
+        type: bool
+        description: "Do you want to publish image to Docker repository ?"
+        default: true
+      role-to-assume:
+        type: string
+        description: "Role AWS to assume to publish docker image to ECR"
+        required: true
+      ecr-registry:
+        type: string
+        description: "Account number of the ECR registry if different than account of the assume role"
+        required: false
+      ecr-repository:
+        type: string
+        description: "Name of the ECR repository to publish the Docker image"
+        required: true
 
 env:
   MVNCMD: ./mvnw -B 
 
 jobs:
-  build:
+  detect_wrapper:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Detect maven wrapper
+        id: detect_wrapper
+        run: |
+          if [! -f ${{ github.workspace }}/mvnw ]; then
+            echo "Assurez-vous d'installer le wrapper maven" && exit 1
+          fi
+        shell: bash
+
+  release_package:
+    needs:
+      - detect_wrapper
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ github.event.inputs.java-version }}
-        distribution: ${{ github.event.inputs.distribution }}
-        architecture: ${{ github.event.inputs.architecture }}
-        cache: maven
-
-    - name: Detect maven wrapper
-      run: |
-        if [ -f ${{ github.workspace }}/mvnw ]; then
-          git chmod +x ${{ github.workspace }}/mvnw
-        else
-          echo "Assurez-vous d'installer le wrapper maven" && exit 1
-        fi
-      shell: bash
 
     - name: Prepare release
       run: |
         git clean -f -d -x
-        $MVNCMD -P allmodules clean release:clean release:prepare -DpushChanges=false
+        $MVNCMD release:clean release:prepare -DpushChanges=false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Extract version number
+      id: get_version
+      run: |
+        echo "release_version=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)" >> $GITHUB_OUTPUT
+
     - name: Perform release
       run: |
-        $MVNCMD release:perform -DlocalCheckout=true -DdeployAtEnd=true "-Dgoals=clean install package source:jar javadoc:jar deploy"
+        $MVNCMD release:perform -DlocalCheckout=true -DdeployAtEnd=true "-Dgoals=install package source:jar javadoc:jar deploy"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,7 +79,60 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ github.ref }}
-        message: '[github_action][skip ci] Incrément de la version à publier à ${{ steps.version_rc.outputs.version }}'
+        message: '[github_action][skip ci] Incrément de la dernière version à publier à ${{ steps.get_version.outputs.release_version }}'
   
     - name: Create a GitHub release
+      id: create_release
       uses: ncipollo/release-action@v1
+      with:
+        makeLatest: true
+        prerelease: false
+    outputs:
+      version: ${{ steps.get_version.outputs.release_version }}
+
+  publish_docker:
+    needs:
+      - release_package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ github.event.inputs.java-version }}
+          distribution: ${{ github.event.inputs.distribution }}
+          architecture: ${{ github.event.inputs.architecture }}
+          cache: maven
+
+      - name: Prepare maven wrapper
+        run: |
+          git chmod +x ${{ github.workspace }}/mvnw
+        shell: bash
+
+      - name: Configure AWS Credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: ${{ github.event.inputs.role-to-assume }}
+          role-session-name: ${{ github.event.inputs.session-name }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: ${{ github.event.inputs.ecr-registry }}
+
+      - name: Normalize git branch name
+        id: normalized-branch-name
+        uses: ankitvgupta/ref-to-tag-action@master
+        with:
+          ref: ${{ github.ref }}
+          head-ref: ${{ github.head_ref }}
+
+      - name: Publish to Amazon ECR
+        run: |
+          $MVNCMD compile jib:build \
+            -Dimage=${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }} \
+            -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}
