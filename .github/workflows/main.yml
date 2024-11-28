@@ -8,6 +8,8 @@ on:
     paths:
       - "actions/*"
       - "workflows/*"
+    paths-ignore:
+      - "workflows/main.yml"
 
 jobs:
   build:
