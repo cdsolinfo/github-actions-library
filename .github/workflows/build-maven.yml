@@ -26,7 +26,7 @@ jobs:
       - name: Detect maven wrapper
         id: detect_wrapper
         run: |
-          if [! -f ${{ github.workspace }}/mvnw ]; then
+          if [ ! -f ${{ github.workspace }}/mvnw ]; then
             echo "Assurez-vous d'installer le wrapper maven" && exit 1
           fi
         shell: bash
