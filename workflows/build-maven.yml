@@ -4,12 +4,10 @@ on:
       java-version:
         type: string
         description: "[Version Java à être utiliser](https://github.com/actions/setup-java#supported-version-syntax)"
-        required: true
         default: "17"
       distribution:
         type: string
         description: "[Distribution Java](https://github.com/actions/setup-java#supported-distributions)"
-        required: true
         default: "corretto"
       architecture:
         type: string

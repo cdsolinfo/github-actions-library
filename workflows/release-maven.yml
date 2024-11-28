@@ -4,13 +4,11 @@ on:
       java-version:
         type: string
         description: "[Version Java à être utiliser](https://github.com/actions/setup-java#supported-version-syntax)"
-        required: true
-        default: ""
+        default: "17"
       distribution:
         type: string
         description: "[Distribution Java](https://github.com/actions/setup-java#supported-distributions)"
-        required: true
-        default: ""
+        default: "corretto"
       architecture:
         type: string
         description: "Architecture cible (x86, x64, armv7, aarch64, ppc64le)"
@@ -55,6 +53,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ github.event.inputs.java-version }}
+        distribution: ${{ github.event.inputs.distribution }}
+        architecture: ${{ github.event.inputs.architecture }}
+        cache: maven
 
     - name: Prepare release
       run: |
