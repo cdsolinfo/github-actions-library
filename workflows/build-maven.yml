@@ -63,3 +63,56 @@ jobs:
         with:
           draft: true
           prerelease: true
+
+  publish_docker:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ github.event.inputs.java-version }}
+          distribution: ${{ github.event.inputs.distribution }}
+          architecture: ${{ github.event.inputs.architecture }}
+          cache: maven
+
+      - name: Prepare maven wrapper
+        run: |
+          git chmod +x ${{ github.workspace }}/mvnw
+        shell: bash
+
+      - name: Configure AWS Credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: ${{ github.event.inputs.role-to-assume }}
+          role-session-name: ${{ github.event.inputs.session-name }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: ${{ github.event.inputs.ecr-registry }}
+
+      - name: Normalize git branch name
+        id: normalized-branch-name
+        uses: ankitvgupta/ref-to-tag-action@master
+        with:
+          ref: ${{ github.ref }}
+
+      - name:
+        id: generate-image-name
+        run: |
+            echo="image-name==${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}-${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo="image-tags==${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}-${{ github.run_number }}-${{ github.run_number }} >> $GITHUB_OUTPUT
+        shell: bash
+        
+      - name: Publish to Amazon ECR
+        run: |
+          $MVNCMD compile jib:build \
+            -Dimage=${{ steps.generate-image-name.outputs.image-name }} \
+            -Djib.to.tags=${{ steps.generate-image-name.outputs.image-tags }} 

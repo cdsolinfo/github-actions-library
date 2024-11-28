@@ -13,10 +13,6 @@ on:
         type: string
         description: "Architecture cible (x86, x64, armv7, aarch64, ppc64le)"
         default: "x86"
-      publish-docker:
-        type: bool
-        description: "Do you want to publish image to Docker repository ?"
-        default: true
       role-to-assume:
         type: string
         description: "Role AWS to assume to publish docker image to ECR"
@@ -92,7 +88,8 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         makeLatest: true
-        prerelease: false
+        draft: false
+        prerelease: ${{ github.event.inputs.pre-release }}
     outputs:
       version: ${{ steps.get_version.outputs.release_version }}
 
@@ -137,8 +134,14 @@ jobs:
           ref: ${{ github.ref }}
           head-ref: ${{ github.head_ref }}
 
+      - name:
+        id: generate-image-name
+        run: |
+            echo="image-name==${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}" >> $GITHUB_OUTPUT
+            echo="image-tags==${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}-${{ github.run_number }} >> $GITHUB_OUTPUT
+        shell: bash
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }} \
-            -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}
+            -Dimage=${{ steps.generate-image-name.outputs.image-name }} \
+            -Djib.to.tags=${{ steps.generate-image-name.outputs.image-tags }}
