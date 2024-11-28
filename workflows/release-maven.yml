@@ -13,17 +13,20 @@ on:
         type: string
         description: "Architecture cible (x86, x64, armv7, aarch64, ppc64le)"
         default: "x86"
+      pre-release:
+        type: boolean
+        description: "Indique si le release est un pré release ou final prêt pour un déploiement en production"
       role-to-assume:
         type: string
-        description: "Role AWS to assume to publish docker image to ECR"
+        description: "Rôle AWS à assumer pour la publication de l'image Docker dans ECR"
         required: true
       ecr-registry:
         type: string
-        description: "Account number of the ECR registry if different than account of the assume role"
+        description: "Numéro de compte du registre ECR si différent que numéro de compte du rôle"
         required: false
       ecr-repository:
         type: string
-        description: "Name of the ECR repository to publish the Docker image"
+        description: "Nom du dépôt ECR où doit être pousser l'image Docker"
         required: true
 
 env:
@@ -87,7 +90,7 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        makeLatest: true
+        makeLatest: ${{ github.event.inputs.pre-release == false }}
         draft: false
         prerelease: ${{ github.event.inputs.pre-release }}
     outputs:
