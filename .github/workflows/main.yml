@@ -29,7 +29,7 @@ jobs:
 
       - name: Write new version to package.json
         run: |
-          for d in actions/*/; {
+          for d in .github/actions/*/; {
             pushd $d;
             if [ -f "package.json" ]; then
               tmp=$(mktemp);
@@ -46,7 +46,7 @@ jobs:
 
       - name: Build new version package
         run: |
-          for d in actions/*/; {
+          for d in .github/actions/*/; {
             pushd $d;
             if [ -f "package.json" ]; then
               npm install;
