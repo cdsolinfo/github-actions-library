@@ -16,13 +16,14 @@ on:
       pre-release:
         type: boolean
         description: "Indique si le release est un pré release ou final prêt pour un déploiement en production"
+        default: false
       role-to-assume:
         type: string
         description: "Rôle AWS à assumer pour la publication de l'image Docker dans ECR"
         required: true
       ecr-registry:
         type: string
-        description: "Numéro de compte du registre ECR si différent que numéro de compte du rôle"
+        description: "Numéro de compte du registre ECR si différent que numéro de compte du rôle assumé"
         required: false
       ecr-repository:
         type: string
@@ -52,6 +53,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        fetch-tags: true
 
     - name: Set up Java
       uses: actions/setup-java@v4
@@ -61,6 +65,11 @@ jobs:
         architecture: ${{ github.event.inputs.architecture }}
         cache: maven
 
+    - name: Prepare maven wrapper
+      run: |
+        chmod +x ${{ github.workspace }}/mvnw
+      shell: bash
+      
     - name: Prepare release
       run: |
         git clean -f -d -x
@@ -68,29 +77,29 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract version number
-      id: get_version
-      run: |
-        echo "release_version=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)" >> $GITHUB_OUTPUT
-
     - name: Perform release
       run: |
         $MVNCMD release:perform -DlocalCheckout=true -DdeployAtEnd=true "-Dgoals=install package source:jar javadoc:jar deploy"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Extract version number
+      id: get_version
+      run: |
+        echo "release_version=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)" >> $GITHUB_OUTPUT
+            
     - name: Commit & Push new version
       uses: actions-js/push@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ github.ref }}
-        message: '[github_action][skip ci] Incrément de la dernière version à publier à ${{ steps.get_version.outputs.release_version }}'
-  
+        tags: true
+
     - name: Create a GitHub release
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        makeLatest: ${{ github.event.inputs.pre-release == false }}
+        makeLatest: ${{ github.event.inputs.pre-release == false}}
         draft: false
         prerelease: ${{ github.event.inputs.pre-release }}
     outputs:
@@ -113,7 +122,7 @@ jobs:
 
       - name: Prepare maven wrapper
         run: |
-          git chmod +x ${{ github.workspace }}/mvnw
+          chmod +x ${{ github.workspace }}/mvnw
         shell: bash
 
       - name: Configure AWS Credentials
@@ -135,16 +144,10 @@ jobs:
         uses: ankitvgupta/ref-to-tag-action@master
         with:
           ref: ${{ github.ref }}
-          head-ref: ${{ github.head_ref }}
+          head_ref: ${{ github.head_ref }}
 
-      - name:
-        id: generate-image-name
-        run: |
-            echo="image-name==${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}" >> $GITHUB_OUTPUT
-            echo="image-tags==${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}-${{ github.run_number }} >> $GITHUB_OUTPUT
-        shell: bash
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ steps.generate-image-name.outputs.image-name }} \
-            -Djib.to.tags=${{ steps.generate-image-name.outputs.image-tags }}
+            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }} \
+            -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}

@@ -35,6 +35,9 @@ jobs:
     needs:
       - detect_wrapper
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v3
 
@@ -48,7 +51,7 @@ jobs:
 
       - name: Prepare maven wrapper
         run: |
-          git chmod +x ${{ github.workspace }}/mvnw
+          chmod +x ${{ github.workspace }}/mvnw
         shell: bash
 
       - name: Build and Deploy
@@ -57,12 +60,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create a GitHub release
-        id: create_release
-        uses: ncipollo/release-action@v1    
-        with:
-          draft: true
-          prerelease: true
+      - name: Extract deployed version number
+        id: get_published_version
+        run: |
+          if [ -f '${{ github.workspace }}/target/deploy-recorder.lst' ]; then
+            echo "published_version=$(awk -F':' '/jar/ {print $4}' ${{ github.workspace }}/target/deploy-recorder.lst)" >> $GITHUB_OUTPUT
+          else 
+             echo "Assurez-vous d'installer l'extension (https://github.com/khmarbaise/deployment-recorder-extension) dans votre repos" && exit 1
+          fi
+    outputs:
+      published_version: ${{ steps.get_published_version.outputs.published_version }}
 
   publish_docker:
     needs:
@@ -81,7 +88,7 @@ jobs:
 
       - name: Prepare maven wrapper
         run: |
-          git chmod +x ${{ github.workspace }}/mvnw
+          chmod +x ${{ github.workspace }}/mvnw
         shell: bash
 
       - name: Configure AWS Credentials
@@ -103,16 +110,15 @@ jobs:
         uses: ankitvgupta/ref-to-tag-action@master
         with:
           ref: ${{ github.ref }}
+          head_ref: ${{ github.head_ref }}
 
-      - name:
-        id: generate-image-name
+      - name: Get Last short commit id
+        id: get_commit_id
         run: |
-            echo="image-name==${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}-${{ github.run_number }}" >> $GITHUB_OUTPUT
-            echo="image-tags==${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}-${{ github.run_number }}-${{ github.run_number }} >> $GITHUB_OUTPUT
-        shell: bash
-        
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_OUTPUT
+
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ steps.generate-image-name.outputs.image-name }} \
-            -Djib.to.tags=${{ steps.generate-image-name.outputs.image-tags }} 
+            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.build.outputs.published_version }} \
+            -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}.${{ steps.get_commit_id.outputs.sha_short }}
