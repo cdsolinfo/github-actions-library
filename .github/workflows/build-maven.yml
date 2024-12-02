@@ -17,6 +17,10 @@ on:
         type: string
         description: "Rôle AWS à assumer pour la publication de l'image Docker dans ECR"
         required: true
+      role-session-name:
+          type: string
+          description: "Nom de la session pour le rôle AWS assumé"
+          required: true
       ecr-registry:
         type: string
         description: "Numéro de compte du registre ECR si différent que numéro de compte du rôle assumé"
@@ -94,6 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -113,7 +119,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4.0.1
         with:
           role-to-assume: ${{ github.event.inputs.role-to-assume }}
-          role-session-name: ${{ github.event.inputs.session-name }}
+          role-session-name: ${{ github.event.inputs.role-session-name }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to Amazon ECR
