@@ -27,6 +27,9 @@ on:
         required: true
 env:
   MVNCMD: ./mvnw -B
+  JAVA_VERSION: ${{ github.event.inputs.java-version != null || github.event.inputs.java-version.default }}
+  DISTRIBUTION: ${{ github.event.inputs.distribution != null || github.event.inputs.distribution.default }}
+  ARCHITECTURE: ${{ github.event.inputs.architecture != null || github.event.inputs.architecture.default }}
 
 jobs:
   detect_wrapper:
@@ -43,21 +46,21 @@ jobs:
         shell: bash
 
   build:
-    needs:
-      - detect_wrapper
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    needs:
+      - detect_wrapper
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ github.event.inputs.java-version }}
-          distribution: ${{ github.event.inputs.distribution }}
-          architecture: ${{ github.event.inputs.architecture }}
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.DISTRIBUTION }}
+          architecture: ${{ env.ARCHITECTURE }}
           cache: maven
 
       - name: Prepare maven wrapper
@@ -83,6 +86,9 @@ jobs:
       published_version: ${{ steps.get_published_version.outputs.published_version }}
 
   publish_docker:
+    permissions:
+      contents: read
+      id-token: write
     needs:
       - build
     runs-on: ubuntu-latest
@@ -92,9 +98,9 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ github.event.inputs.java-version }}
-          distribution: ${{ github.event.inputs.distribution }}
-          architecture: ${{ github.event.inputs.architecture }}
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.DISTRIBUTION }}
+          architecture: ${{ env.ARCHITECTURE }}
           cache: maven
 
       - name: Prepare maven wrapper
@@ -108,7 +114,7 @@ jobs:
         with:
           role-to-assume: ${{ github.event.inputs.role-to-assume }}
           role-session-name: ${{ github.event.inputs.session-name }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
