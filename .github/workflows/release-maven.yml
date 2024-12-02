@@ -50,6 +50,9 @@ jobs:
   release_package:
     needs:
       - detect_wrapper
+    permissions:
+      contents: write
+      packages: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -86,7 +89,7 @@ jobs:
     - name: Extract version number
       id: get_version
       run: |
-        echo "release_version=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)" >> $GITHUB_OUTPUT
+        echo "release_version=$($MVNCMD help:evaluate -Dexpression='project.version' -q -DforceStdout)" >> $GITHUB_OUTPUT
             
     - name: Commit & Push new version
       uses: actions-js/push@master
