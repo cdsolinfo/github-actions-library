@@ -27,9 +27,9 @@ on:
         required: true
 env:
   MVNCMD: ./mvnw -B
-  JAVA_VERSION: ${{ github.event.inputs.java-version != null || github.event.inputs.java-version.default }}
-  DISTRIBUTION: ${{ github.event.inputs.distribution != null || github.event.inputs.distribution.default }}
-  ARCHITECTURE: ${{ github.event.inputs.architecture != null || github.event.inputs.architecture.default }}
+  JAVA_VERSION: ${{ github.event.inputs.java-version || github.event.inputs.java-version.default }}
+  DISTRIBUTION: ${{ github.event.inputs.distribution || github.event.inputs.distribution.default }}
+  ARCHITECTURE: ${{ github.event.inputs.architecture || github.event.inputs.architecture.default }}
 
 jobs:
   detect_wrapper:
