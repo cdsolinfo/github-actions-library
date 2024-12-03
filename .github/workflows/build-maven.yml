@@ -40,7 +40,7 @@ env:
   JAVA_VERSION: ${{ github.event.inputs.java-version || github.event.inputs.java-version.default }}
   DISTRIBUTION: ${{ github.event.inputs.distribution || github.event.inputs.distribution.default }}
   ARCHITECTURE: ${{ github.event.inputs.architecture || github.event.inputs.architecture.default }}
-  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.architecture.default }}
+  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.aws_region.default }}
 
 jobs:
   detect_wrapper:

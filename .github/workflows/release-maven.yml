@@ -29,9 +29,14 @@ on:
         type: string
         description: "Nom du dépôt ECR où doit être pousser l'image Docker"
         required: true
-
+      aws-region:
+        type: string
+        description: "Region AWS"
+        required: false
+        default: "ca-central-1"
 env:
   MVNCMD: ./mvnw -B 
+  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.architecture.default }}
 
 jobs:
   detect_wrapper:
@@ -152,5 +157,4 @@ jobs:
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }} \
-            -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}-${{ needs.release_package.outputs.version }}
+            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}
