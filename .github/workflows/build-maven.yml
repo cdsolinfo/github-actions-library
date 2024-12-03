@@ -29,7 +29,7 @@ on:
         type: string
         description: "Nom du dépôt ECR où doit être pousser l'image Docker"
         required: true
-      aws_region:
+      aws-region:
         type: string
         description: "Region AWS"
         required: false
