@@ -37,10 +37,10 @@ on:
 
 env:
   MVNCMD: ./mvnw -B
-  JAVA_VERSION: ${{ github.event.inputs.java-version || github.event.inputs.java-version.default }}
-  DISTRIBUTION: ${{ github.event.inputs.distribution || github.event.inputs.distribution.default }}
-  ARCHITECTURE: ${{ github.event.inputs.architecture || github.event.inputs.architecture.default }}
-  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.aws_region.default }}
+  JAVA_VERSION: ${{ inputs.java-version || inputs.java-version.default }}
+  DISTRIBUTION: ${{ inputs.distribution || inputs.distribution.default }}
+  ARCHITECTURE: ${{ inputs.architecture || inputs.architecture.default }}
+  AWS_REGION: ${{ inputs.aws-region || inputs.aws-region.default }}
 
 jobs:
   detect_wrapper:
@@ -125,15 +125,15 @@ jobs:
         id: creds
         uses: aws-actions/configure-aws-credentials@v4.0.1
         with:
-          role-to-assume: ${{ github.event.inputs.role-to-assume }}
-          role-session-name: ${{ github.event.inputs.role-session-name }}
+          role-to-assume: ${{ inputs.role-to-assume }}
+          role-session-name: ${{ inputs.role-session-name }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          registries: ${{ github.event.inputs.ecr-registry }}
+          registries: ${{ inputs.ecr-registry }}
 
       - name: Normalize git branch name
         id: normalized-branch-name
@@ -150,5 +150,5 @@ jobs:
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.build.outputs.published_version }} \
+            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repository }}:${{ needs.build.outputs.published_version }} \
             -Djib.to.tags=${{ steps.normalized-branch-name.outputs.tag }}.${{ steps.get_commit_id.outputs.sha_short }}

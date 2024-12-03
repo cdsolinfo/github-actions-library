@@ -36,7 +36,7 @@ on:
         default: "ca-central-1"
 env:
   MVNCMD: ./mvnw -B 
-  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.architecture.default }}
+  AWS_REGION: ${{ inputs.aws-region || inputs.aws-region.default }}
 
 jobs:
   detect_wrapper:
@@ -68,9 +68,9 @@ jobs:
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ github.event.inputs.java-version }}
-        distribution: ${{ github.event.inputs.distribution }}
-        architecture: ${{ github.event.inputs.architecture }}
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.distribution }}
+        architecture: ${{ inputs.architecture }}
         cache: maven
 
     - name: Prepare maven wrapper
@@ -107,9 +107,9 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        makeLatest: ${{ github.event.inputs.pre-release == false}}
+        makeLatest: ${{ inputs.pre-release == false}}
         draft: false
-        prerelease: ${{ github.event.inputs.pre-release }}
+        prerelease: ${{ inputs.pre-release }}
     outputs:
       version: ${{ steps.get_version.outputs.release_version }}
 
@@ -123,9 +123,9 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ github.event.inputs.java-version }}
-          distribution: ${{ github.event.inputs.distribution }}
-          architecture: ${{ github.event.inputs.architecture }}
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.distribution }}
+          architecture: ${{ inputs.architecture }}
           cache: maven
 
       - name: Prepare maven wrapper
@@ -137,15 +137,15 @@ jobs:
         id: creds
         uses: aws-actions/configure-aws-credentials@v4.0.1
         with:
-          role-to-assume: ${{ github.event.inputs.role-to-assume }}
-          role-session-name: ${{ github.event.inputs.session-name }}
+          role-to-assume: ${{ inputs.role-to-assume }}
+          role-session-name: ${{ inputs.session-name }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          registries: ${{ github.event.inputs.ecr-registry }}
+          registries: ${{ inputs.ecr-registry }}
 
       - name: Normalize git branch name
         id: normalized-branch-name
@@ -157,4 +157,4 @@ jobs:
       - name: Publish to Amazon ECR
         run: |
           $MVNCMD compile jib:build \
-            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ github.event.inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}
+            -Dimage=${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repository }}:${{ needs.release_package.outputs.version }}
