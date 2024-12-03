@@ -29,11 +29,18 @@ on:
         type: string
         description: "Nom du dépôt ECR où doit être pousser l'image Docker"
         required: true
+      aws_region:
+        type: string
+        description: "Region AWS"
+        required: false
+        default: "ca-central-1"
+
 env:
   MVNCMD: ./mvnw -B
   JAVA_VERSION: ${{ github.event.inputs.java-version || github.event.inputs.java-version.default }}
   DISTRIBUTION: ${{ github.event.inputs.distribution || github.event.inputs.distribution.default }}
   ARCHITECTURE: ${{ github.event.inputs.architecture || github.event.inputs.architecture.default }}
+  AWS_REGION: ${{ github.event.inputs.aws_region || github.event.inputs.architecture.default }}
 
 jobs:
   detect_wrapper:
@@ -120,7 +127,7 @@ jobs:
         with:
           role-to-assume: ${{ github.event.inputs.role-to-assume }}
           role-session-name: ${{ github.event.inputs.role-session-name }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
